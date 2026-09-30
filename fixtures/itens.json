@@ -1,0 +1,138 @@
+{
+ "itens": [
+  {
+   "id": "item01",
+   "tema": "clima-bot: MVP do coletor",
+   "prosa": "Proposta de MVP para o bot de clima no a plataforma de mercado de previsao. Ideia: coletar dados, estimar probabilidades por faixa de temperatura e operar em paper trading primeiro. Detalhes: (1) coletor rodando a cada hora, chamando a API da plataforma do a plataforma de mercado de previsao (publica, sem autenticacao) para listar os eventos de clima ativos de a cidade e os precos por faixa, mais o orderbook da plataforma para bid/ask e profundidade; (2) para a previsao, usar a API ensemble do a API de ensemble publica (gratuita): ECMWF com 51 membros e GFS com 31 membros, temperatura maxima diaria na estacao exata de liquidacao (a estacao para a cidade), na unidade do mercado; (3) modelo simples: transformar os membros do ensemble em probabilidade por bucket, com um ajuste de vies por estacao aprendido de historico; (4) tudo gravado em SQLite append-only com timestamp de coleta, sem olhar o futuro. Pergunta: a ordem esta certa? O que esta faltando para isso virar um experimento confiavel?",
+   "proto": "§PROTO v1 (compact inter-model). Reply ONLY in this format. No prose. Max density, zero info loss.\nLEGEND: ✓=agree ✗=disagree ?=open q →=then/implies ⊕=add ⊖=cut ≈=approx #=count @=source !=risk ~=decision. Keys: ens=ensemble stn=station fc=forecast pit=point-in-time ppr=paper.\nCTX: bot clima polymarket (cidade/estacao, py3.12, sqlite, ppr-only).\nC.prop:\n P1 collector q1h @gamma (eventos ativos, precos por bkt) + @plataforma ob (bid/ask/depth)\n P2 fc: @api-ensemble ens {ecmwf(51), gfs(31)} tmax diario stn=a estacao unidade=mkt\n P3 membros→prob/bkt + bias corr por stn (historico)\n P4 store sqlite append-only, fetched_ts, pit\n ?1 ordem correta? ?2 o que falta p/ experimento confiavel?\nOUT: per item ✓/✗+fix; ⊕/⊖; answers ?1-?2; final ~ list.",
+   "rubrica": [
+    "da posicao (concorda/discorda) sobre a ordem proposta do coletor a paper trading",
+    "aponta que as regras de liquidacao de cada mercado precisam ser parseadas e persistidas (estacao, dia civil local, fonte primaria/fallback, unidade, precisao)",
+    "aponta que previsao de grade (2m/25km) nao equivale ao maximo horario inteiro em uma estacao especifica (estacao/horario/arredondamento importam)",
+    "aponta risco de vies/vazamento (look-ahead) no ajuste de vies ou no uso do historico",
+    "adiciona algo faltante (ex.: fonte de observacao/settlement, parsing de regras, backtest)",
+    "responde a pergunta final com pelo menos 1 item concreto"
+   ]
+  },
+  {
+   "id": "item02",
+   "tema": "clima-bot: backtest agora + edge intradiario",
+   "prosa": "Discordo de esperar 2-3 semanas em paper antes de qualquer coisa: da pra BACKTESTAR agora. O o orderbook da plataforma do a plataforma de mercado de previsao tem /prices-history para mercados resolvidos, e o arquivo arquivo por rodada do a API de ensemble publica cobre de abril de 2026 pra ca - sao uns 5 meses de previsao point-in-time contra preco historico de mercado e contra o settlement real da a fonte publica de observacao. Paper forward roda em paralelo, so para validar fills e spread. Concorda? Quais sao as armadilhas? Outra: acho que a maior vantagem real e intradiaria, nao pre-dia - depois das 14-15h locais, o maximo ja observado (a fonte publica de observacao horario, a estacao) trunca a distribuicao, e faixas mortas (ja impossiveis) podem ainda estar negociando. Deveria o MVP incluir um detector de faixa impossivel desde o dia 1, ja que ele nao precisa de nenhum modelo meteorologico? Terceiro ponto: escopo para um estudante solo - 1 cidade, SQLite, 3 scripts (coletar, backtestar, pontuar). O que cortar ou adicionar?",
+   "proto": "§PROTO v1 (compact inter-model). Reply ONLY in this format. No prose. Max density, zero info loss.\nLEGEND: ✓=agree ✗=disagree ?=open q →=then/implies ⊕=add ⊖=cut ≈=approx #=count @=source !=risk ~=decision. Keys: obs=observation bkt=bucket stn=station ppr=paper.\nCTX: debate r2 clima-bot; ~ c1=backtest agora c2=edge intradiario c3=escopo.\nC.prop r2:\n B1: backtest JA: @plataforma /prices-history + @api-ensemble arquivo-por-rodada (cobertura ~abr/2026→) vs settlement a fonte publica de observacao; ppr forward so valida fills/spread. ?1 traps (granularidade prices-history, last-trade≠executavel, sobrevivencia de mercados)?\n B2: edge principal = intradiario (pos ~14-15h local, obs a fonte publica de observacao horaria a estacao trunca distribuicao; bkt morta ainda negocia). ?2 incluir detector bkt-impossivel no MVP (nao requer modelo meteorologico)?\n B3: escopo solo: 1 cidade, sqlite, 3 scripts (collect|backtest|score). ?3 cortar/adicionar o que?\nOUT: per item ✓/✗+fix; ⊕/⊖; answers ?1-?3; final ~ list.",
+   "rubrica": [
+    "da posicao sobre backtestar agora em vez de so esperar paper",
+    "cita pelo menos 1 armadilha concreta do backtest (granularidade, last-trade vs executavel, sobrevivencia)",
+    "da posicao sobre o detector de faixa impossivel no MVP",
+    "reconhece que observacao ja acumulada e informacao real (maximo parcial)",
+    "sugere corte ou adicao concreta no escopo de 3 scripts",
+    "nao contradiz informacoes do proprio item (sem fato inventado grave)"
+   ]
+  },
+  {
+   "id": "item03",
+   "tema": "clima-bot: schema do banco",
+   "prosa": "Design concreto das primeiras tabelas do banco: mercados (id, slug, condicao, data local, estacao, fonte primaria, fallback, unidade, precisao, regras brutas, aberto/fechado, bucket resolvido); buckets (mercado, token, limites inferiores/superiores + inclusividade); previsoes (estacao, modelo, rodada, data-alvo, membro, maxima, coletado em) - usando o ensemble do a API de ensemble publica, com backfill via arquivo por rodada; observacoes (estacao, horario, temperatura, fonte, coletado em) da api-observacoes-publica; orderbook (token, horario, bid, ask, tamanhos, profundidade) do o orderbook da plataforma; e precos historicos (token, horario, preco). A descoberta de mercados vem do a API da plataforma com regex no slug. Agendamento: coletar a cada 30 min, e a cada 5 min depois das 14h local. Duvidas: (1) parse de regras por regex ou por LLM? (2) arredondamento das observacoes - a fonte publica de observacao horario arredonda em F inteiro, dados de 5 min em C convertidos dao diferencas; o de 5 min e informacao nova legitima ou ruido? (3) o agendamento esta ok? (4) falta alguma tabela?",
+   "proto": "§PROTO v1 (compact inter-model). Reply ONLY in this format. No prose. Max density, zero info loss.\nLEGEND: ✓=agree ✗=disagree ?=open q →=then/implies ⊕=add ⊖=cut ≈=approx #=count @=source !=risk ~=decision. Keys: mkt=market bkt=bucket stn=station obs=observation fc=forecast pit=point-in-time ob=orderbook.\nCTX: r3 design do banco (mvp clima-bot). agreed r1-r2.\nC.prop r3:\n T1 mkts(id,slug,cond_id,date_local,stn,src_primary,src_fallback,unit,prec,rules_raw,t_open,t_close,resolved_bkt)\n T2 bkts(mkt_id,tok_id,lo,hi,incl_lo,incl_hi)\n T3 fc(stn,model,run_ts,valid_date,member,tmax,fetched_ts) @ens + backfill @arquivo-por-rodada\n T4 obs(stn,ts_utc,temp_f,src,fetched_ts) @api-observacoes-publica\n T5 ob(tok_id,ts,bid,ask,bid_sz,ask_sz,depth_json) @plataforma /book\n T6 px_hist(tok_id,ts,p) @plataforma /prices-history\n discovery: @gamma /events?slug pattern \"temperature-on-*\"; parse rules_raw regex; fail→flag (no guess).\n sched: q30min; q5min pos 14:00 local.\n ?1 rules parse: regex vs LLM? ?2 obs round: METAR F inteiro vs 5-min C→F - sinal ou ruido? ?3 sched ok? ?4 tabelas faltando?\nOUT: per item ✓/✗+fix; ⊕/⊖; answers ?1-?4; final ~ list.",
+   "rubrica": [
+    "da posicao sobre regex vs LLM no parse de regras",
+    "opina sobre o arredondamento das observacoes (qual fonte vale / risco de divergencia)",
+    "responde se o agendamento esta ok (ou sugere ajuste)",
+    "sugere alguma tabela ou estrutura faltante (ou confirma que nao falta)",
+    "aponta pelo menos 1 risco/erro concreto do schema (ex.: chaves unicas, run/lead, logs de coleta)",
+    "responde pelo menos 3 das 4 perguntas"
+   ]
+  },
+  {
+   "id": "item04",
+   "tema": "Oficina de C: proposta do jogo",
+   "prosa": "Proposta do jogo de C para o aluno: juntar um site de curso de C e outro site de exercicios de C num mapa de 8 mundos (3 primeiros cobrindo a materia da prova da disciplina: scanf/printf, if/else/switch, um produto, sem loops/arrays). Cada mundo tem ~6-10 niveis + um chefe. Mecanicas, todas verificaveis offline sem compilador: (a) prever a saida exata; (b) achar o bug (tocar no token errado e escolher a correcao); (c) completar lacunas (tokens/formatadores); (d) rastreio de memoria passo a passo, com caixas desenhadas como gavetas com endereco; (e) ordenar linhas; (f) decodificar mensagem de erro do compilador. Niveis de bug vem das tags de erro reais do aluno; resposta errada registra a tag e reaparece uma variacao nova da mesma causa. Feedback nunca entrega a resposta de primeira: escada de dicas em 3 passos. Visual: todo conceito com desenho SVG. Conteudo em arrays JS, ~150 itens na v1 - todos os trechos de C verificados compilando com gcc real. Perguntas: (1) falta alguma mecanica ou da pra cortar? (2) ordem: mundos da prova primeiro, resto depois? (3) como evitar cara de app de quiz e ter loop de jogo de verdade?",
+   "proto": "§PROTO v1 (compact inter-model). Reply ONLY in this format. No prose. Max density, zero info loss.\nLEGEND: ✓=agree ✗=disagree ?=open q →=then/implies ⊕=add ⊖=cut ≈=approx #=count @=source !=risk ~=decision. Keys: L=learner mundo=world nivel=level mech=mechanic SRS.\nCTX: jogo C para L (aluno do 1o semestre de CC, pt-BR, visual, prova da disciplina em 2d: scanf/printf/if/else/switch, 1 produto, sem loops/arrays; tags de erro recorrentes: formato-vs-tipo, array-vs-variavel, esqueleto-do-main, scanf-nao-formata, condicao-incompleta).\nC.prop r1:\n P1 mapa 8 mundo (merged curriculum); mundo1-3=a prova da disciplina; ~6-10 nivel + boss cada.\n P2 mechs offline: (a) prever saida exata (b) achar-bug (c) completar lacunas (d) rastreio de memoria c/ gavetas+endereco (e) ordenar linhas (f) decodificar erro do compilador.\n P3 bug nivels seeded das error tags; erro→log tag→SRS (Leitner 1/2/5/12d).\n P4 feedback: nunca resposta de 1a; escada 3 passos. P5 visual: SVG por conceito. P6 conteudo em arrays JS; ≈150 itens v1; trechos C verificados com gcc real.\n ?1 mechs faltando/cortar? ?2 ordem a prova da disciplina-first? ?3 como evitar cara de quiz → loop de jogo?\nOUT: per P ✓/✗+fix; ⊕/⊖; answers ?1-?3; final ~ list.",
+   "rubrica": [
+    "da posicao sobre mecanicas faltantes ou a cortar",
+    "da posicao sobre a ordem (a prova da disciplina primeiro vs resto)",
+    "sugere como ter loop de jogo de verdade (evitar cara de quiz)",
+    "avalia os pontos da proposta (pelo menos 3 dos P1-P6 mencionados)",
+    "traz pelo menos 1 correcao tecnica concreta (ex.: validacao do conteudo, gcc, dados do aluno)",
+    "sem erro factual sobre o conteudo proposto"
+   ]
+  },
+  {
+   "id": "item05",
+   "tema": "Oficina: verificacao de conteudo + ambiente",
+   "prosa": "Riscos de conteudo que vejo: validar os ~150 itens de C por dupla revisao de dois modelos nao e garantia suficiente - quero compilar de verdade, com gcc/clang, num pipeline de CI, com testes de saida e casos-limite; a revisao por modelos fica como complemento. E o ambiente: nao tem Android SDK nem Java aqui, entao APK ta fora. Alternativa: HTML/JS de arquivo unico (PWA) que funciona no navegador do celular com adicionar a tela inicial; APK depois, se quiser, via PWABuilder/TWA. O sandbox real de codigo (JSCPP) fica pra v2, e lembrando que JSCPP nao e equivalente ao gcc - nao serve como prova de comportamento de C. Pergunta: concordam com compilar tudo no CI como fonte da verdade? E o PWA single-file e a decisao certa pro escopo, ou tem armadilha?",
+   "proto": "§PROTO v1 (compact inter-model). Reply ONLY in this format. No prose. Max density, zero info loss.\nLEGEND: ✓=agree ✗=disagree ?=open q →=then/implies ⊕=add ⊖=cut ≈=approx #=count @=source !=risk ~=decision. Keys: CI=integracao continua UB=undefined behavior.\nCTX: jogo C; validacao de conteudo + ambiente.\nC.prop r1b:\n V1 ⊖ \"dupla revisao por modelos\" como validacao suficiente → ⊕ compilar de verdade (gcc/clang) em CI; testes de saida + casos-limite; revisao por modelo ≈ complemento.\n E1: sem Android SDK/java → APK ✗ agora. → single-file HTML/JS PWA (browser celular, add-to-home); APK depois @PWABuilder/TWA.\n V2: sandbox real @JSCPP = opcional v2; ! JSCPP ≠ gcc → ✗ como prova de comportamento C.\n ?1 compilar no CI como fonte da verdade? ?2 PWA single-file ok p/ escopo ou armadilha?\nOUT: per item ✓/✗+fix; ⊕/⊖; answers ?1-?2; final ~ list.",
+   "rubrica": [
+    "da posicao sobre usar CI (compilacao real) como fonte da verdade",
+    "da posicao sobre o PWA single-file (armadilhas ou confirmacao)",
+    "menciona limites dos testes (ex.: comportamento indefinido nao detectavel, casos-limite)",
+    "sugere complemento concreto ao pipeline de verificacao",
+    "avalia pelo menos 2 dos itens V1/E1/V2 citados"
+   ]
+  },
+  {
+   "id": "item06",
+   "tema": "Oficina: lacunas de ambiguidade (revisao cruzada)",
+   "prosa": "Achei cinco lacunas no primeiro lote de exercicios dos mundos 1-2: (w1-03) o enunciado aceita duas respostas diferentes; (w1-14) o mesmo caso pode ser resolvido por duas ordens de linhas com saida identica; (w2-13) falta especificar se %d imprime com sinal; (w3-18) o teste nao distingue erro de compilacao de aviso; e (boss-06) o chefe assume 'for' quando o aluno ainda nao viu loops - mover a ordem do mundo. Tambem: w3-22/23 deveriam virar 'prever' (a ordem dos cases e livre em C) e a regra nova e declaracoes no topo em qualquer ordem. O verificador automatico ganhou um teste de ambiguidade (a alternativa errada e a troca de linhas nao podem produzir a mesma saida). Concorda com as correcoes? Falta alguma classe de ambiguidade nao coberta?",
+   "proto": "§PROTO v1 (compact inter-model). Reply ONLY in this format. No prose. Max density, zero info loss.\nLEGEND: ✓=agree ✗=disagree ?=open q →=then/implies ⊕=add ⊖=cut ≈=approx #=count @=source !=risk ~=decision. Keys: ex=exercicio tc=teste.\nCTX: revisao cruzada r3 (Oficina C; v1 = mundo1-3 + boss).\nC.prop r3:\n ✗→fix w1-03 (2 respostas validas), w1-14 (2 ordens de linha, saida identica), w2-13 (%d sinal?), w3-18 (nao distingue erro/aviso), boss-06 (usa for; mover ordem do mundo).\n ~ w3-22/23 → 'prever' (ordem de case e livre em C); ⊕ regra: declaracoes no topo em qualquer ordem.\n ⊕ verify.js: teste de ambiguidade automatico (alternativa errada / troca de linhas nao pode dar a mesma saida).\n ?1 concordam com as correcoes? ?2 falta alguma classe de ambiguidade?\nOUT: per item ✓/✗+fix; ⊕/⊖; answers ?1-?2; final ~ list.",
+   "rubrica": [
+    "da posicao sobre as correcoes propostas (avalia pelo menos 3 dos 5 itens w*/boss)",
+    "da posicao sobre transformar w3-22/23 em 'prever'",
+    "sugere alguma classe de ambiguidade nao coberta (ou justifica que nao falta)",
+    "sugere tecnica de verificacao adicional ou confirma o teste de ambiguidade",
+    "sem inventar fatos sobre os itens w1/w2/w3/boss citados"
+   ]
+  },
+  {
+   "id": "item07",
+   "tema": "Oficina: redesign 'Oficina de C'",
+   "prosa": "Mudanca de rumo do usuario: rejeitou o quiz e quer a 'Oficina de C' - escrever codigo de verdade, com gcc real e testes. Pontos que fechamos: (1) app local com IDE simulada; (2) checagem por tokens com fronteira numerica (nao comparar bytes - tolerar espacos); (3) exigir formato exato so onde o formato E a licao; (4) cortar a etapa de copiar codigo; (5) usar exercicios Parsons (montar a ordem das linhas) no lugar; (6) revisao SRS comprimida antes da prova; (7) dominado = 2 passes espacados. Ficou pendente: como posso verificar exercicios de escrita livre de codigo sem gcc no navegador? E qual o criterio de correcao pra exercicios abertos?",
+   "proto": "§PROTO v1 (compact inter-model). Reply ONLY in this format. No prose. Max density, zero info loss.\nLEGEND: ✓=agree ✗=disagree ?=open q →=then/implies ⊕=add ⊖=cut ≈=approx #=count @=source !=risk ~=decision. Keys: SRS=repeticao espacada gcc=compilador C.\nCTX: r4; L rejeitou quiz → \"Oficina de C\": codigo real, gcc, testes.\nC.prop r4:\n O1 ✓ app local c/ IDE simulada\n O2 ✓ checagem por tokens c/ fronteira numerica (⊖ comparacao byte-a-byte)\n O3 ✓ exact so onde formato e a licao\n O4 ⊖ copiar codigo como etapa (substituir)\n O5 ⊕ Parsons no lugar da copia\n O6 ⊕ SRS comprimido antes da prova\n O7 ✓ dominado = 2 passes espacados\n ?1 verificar codigo livre sem gcc no browser? ?2 criterio de correcao p/ exercicios abertos?\nOUT: per item ✓/✗+fix; ⊕/⊖; answers ?1-?2; final ~ list.",
+   "rubrica": [
+    "responde a pergunta sobre verificar codigo livre sem gcc (da proposta concreta)",
+    "responde a pergunta sobre criterio de correcao de exercicios abertos",
+    "avalia pelo menos 2 dos pontos O1-O7 com posicao",
+    "traz correcao ou melhoria adicional concreta ao desenho",
+    "reconhece limitacoes (honestidade sobre o que nao da pra fazer)"
+   ]
+  },
+  {
+   "id": "item08",
+   "tema": "Oficina: pipeline de verificacao (gate)",
+   "prosa": "Estado do pipeline de verificacao: o portao e 'a referencia passa e cada errada reprova'. No primeiro lote do capitulo, 9 exercicios foram reprovados no portao: 7 por teste fraco e 1 com conta errada (50*2=100 sem desconto, nao 95) - corrigidos. No lote seguinte, 5 erradas eram comportamento indefinido (nao detectavel por teste) e foram retiradas; 2 'erradas' nao eram bug e foram trocadas. Regra que ficou: nenhum exercicio entra sem passar o portao; UB nao entra como exercicio de correcao. Restam duvidas: (a) como lidar com saida que depende de implementacao (ordem de avaliacao etc.)? (b) vale manter exercicios que so falham com -Wall? Feche a lista de regras do pipeline se concordar.",
+   "proto": "§PROTO v1 (compact inter-model). Reply ONLY in this format. No prose. Max density, zero info loss.\nLEGEND: ✓=agree ✗=disagree ?=open q →=then/implies ⊕=add ⊖=cut ≈=approx #=count @=source !=risk ~=decision. Keys: gate=portao de verificacao UB=undefined behavior.\nCTX: r5-6 verificacao de exercicios (Oficina C).\nC.prop:\n V1: gate = referencia passa; cada errada reprova.\n V2: 1o lote: 9 reprovados (7 teste fraco, 1 conta 50*2≠95) → corrigidos. 2o: 5 UB → retirados; 2 nao-bugs → trocados.\n ~ regra: nada entra sem gate; UB ∉ exercicios de correcao.\n ?1 saida dependente de implementacao (ordem de avaliacao) → como tratar? ?2 exercicio que so falha com -Wall: manter?\nOUT: per item ✓/✗+fix; ⊕/⊖; answers ?1-?2; final ~ list.",
+   "rubrica": [
+    "responde como tratar saida dependente de implementacao (ordem de avaliacao)",
+    "da posicao sobre exercicios que so falham com -Wall",
+    "sugere regra/etapa adicional para o pipeline",
+    "da posicao sobre o gate (referencia passa / erradas reprovam)",
+    "precisao tecnica (nao confunde UB com erro comum; sem invencao)"
+   ]
+  },
+  {
+   "id": "item09",
+   "tema": "clima-bot: ranking de riscos",
+   "prosa": "Lista dos 5 riscos principais que identifiquei no bot: (1) liquidacao depende das regras de CADA mercado - estacao, dia civil local, fonte primaria e fallback, unidade e precisao, com revisoes aceitas ate sair o dado do dia seguinte; (2) previsao de grade (~25 km, 2 m) nao e a mesma coisa que maximo horario inteiro em uma estacao especifica - estacao, horario e arredondamento mudam o bucket; (3) vies historico pode vazar: a serie 'historical forecast' e costurada e nao reproduz o que estava disponivel na hora da decisao - usar arquivo por rodada/lead time; (4) o mercado muda durante o dia: maximo parcialmente observado muda tudo no intradiario; (5) para um solo, o escopo precisa comecar em 1 cidade. Concorda com o ranking? Qual risco eu subestimei?",
+   "proto": "§PROTO v1 (compact inter-model). Reply ONLY in this format. No prose. Max density, zero info loss.\nLEGEND: ✓=agree ✗=disagree ?=open q →=then/implies ⊕=add ⊖=cut ≈=approx #=count @=source !=risk ~=decision. Keys: stn=station bkt=bucket pit=point-in-time.\nCTX: revisao de riscos (mvp clima-bot).\nC.prop r-riscos:\n !1 liquidacao por regras de cada mkt (stn, dia local, fonte+fallback, unidade, precisao, revisoes)\n !2 fc grade ~25km/2m ≠ maximo horario inteiro na stn (stn/horario/arredondamento → bkt)\n !3 vies historico pode vazar ('historical forecast' costurada) → arquivo por rodada/lead time\n !4 obs parcial intraday muda tudo\n !5 solo → 1 cidade no inicio\n ?1 ranking ok? ?2 risco subestimado?\nOUT: per item ✓/✗+fix; ⊕/⊖; answers ?1-?2; final ~ list.",
+   "rubrica": [
+    "avalia o ranking de riscos (posicao clara)",
+    "aponta risco subestimado ou faltante",
+    "adiciona ou corrige algum risco com conteudo concreto",
+    "mantem fidelidade aos riscos citados (sem distorcer)",
+    "da posicao item a item em pelo menos 3 dos 5 riscos"
+   ]
+  },
+  {
+   "id": "item10",
+   "tema": "Oficina: plano de producao de conteudo",
+   "prosa": "Plano de producao do conteudo: dividir os mundos entre os dois modelos - Modelo A escreve mundos 1 e 2 (30 exercicios), Modelo B escreve mundo 3 + defesa (33), Modelo C faz o chefe + rastreios (11). Cada lote passa pelo portao (referencia passa, erradas reprovam) antes de entrar. Criterios de aceite: (a) formato de saida estavel; (b) todo exercicio com explicacao curta da correcao; (c) nenhum uso de conceito nao lecionado antes (ex. for antes do mundo de loops); (d) dificuldade crescente dentro do mundo. Falta combinar: como tratar exercicios com mais de uma resposta aceitavel? E quem decide a ordem final de lancamento?",
+   "proto": "§PROTO v1 (compact inter-model). Reply ONLY in this format. No prose. Max density, zero info loss.\nLEGEND: ✓=agree ✗=disagree ?=open q →=then/implies ⊕=add ⊖=cut ≈=approx #=count @=source !=risk ~=decision. Keys: gate=portao mundo=world.\nCTX: r2 producao (Oficina C; mundo1-3 + boss; gate obrigatorio).\nC.prop r2:\n W1: Modelo A mundo1+mundo2 (#30). W2: Modelo B mundo3+defesa (#33). W3: Modelo C boss+rastreios (#11).\n G1: cada lote passa gate (referencia passa; erradas reprovam).\n A1 ✓ formato estavel; A2 ✓ explicacao curta; A3 ✓ nada nao-lecionado antes (ex. for ∉ mundo1); a prova da disciplina ✓ dificuldade crescente.\n ?1 exercicios com >1 resposta aceitavel? ?2 quem decide ordem final?\nOUT: per item ✓/✗+fix; ⊕/⊖; answers ?1-?2; final ~ list.",
+   "rubrica": [
+    "responde como tratar exercicios com mais de uma resposta aceitavel",
+    "responde quem decide a ordem final de lancamento (ou propoe criterio)",
+    "sugere correcao ou melhoria no plano de producao",
+    "da posicao sobre o gate obrigatorio",
+    "sem contradicao com as informacoes do item"
+   ]
+  }
+ ]
+}

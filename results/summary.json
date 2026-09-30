@@ -1,0 +1,59 @@
+{
+ "meta": {
+  "data": "2026-09-30",
+  "itens": 10,
+  "condicoes": [
+   "prosa",
+   "proto"
+  ],
+  "replicas": 2,
+  "modelo_principal": "deepseek-flash (via API)",
+  "temperatura_respostas": 0.3,
+  "temperatura_juiz": 0.0,
+  "nota": "deepseek-flash tem raciocinio interno cobrado; response_liquida = completion_tokens - reasoning_tokens"
+ },
+ "resultado_ds": {
+  "prosa": {
+   "in_tokens": 328.6,
+   "out_total": 9961.0,
+   "reasoning": 8394.8,
+   "resposta_liquida": 1566.2,
+   "latencia_ms": 52553.9,
+   "chars": 5598.8
+  },
+  "proto": {
+   "in_tokens": 356.7,
+   "out_total": 5980.4,
+   "reasoning": 5458.6,
+   "resposta_liquida": 521.8,
+   "latencia_ms": 29857.3,
+   "chars": 1502.5
+  },
+  "deltas_proto_vs_prosa": {
+   "in_tokens": 1.086,
+   "out_total": 0.6,
+   "resposta_liquida": 0.333,
+   "latencia": 0.568
+  }
+ },
+ "juiz": {
+  "rubrica_avaliacoes": 40,
+  "rubrica_cobertura_media_prosa": 1.0,
+  "rubrica_cobertura_media_proto": 1.0,
+  "cego_A_B_pares_validos": 17,
+  "cego_A_B_placar": {
+   "proto": 9,
+   "prosa": 8
+  }
+ },
+ "conformidade": {
+  "prosa": {
+   "media_frac_linhas_com_simbolo": 0.0,
+   "media_simbolos_por_resposta": 1.8
+  },
+  "proto": {
+   "media_frac_linhas_com_simbolo": 0.552,
+   "media_simbolos_por_resposta": 37.1
+  }
+ }
+}

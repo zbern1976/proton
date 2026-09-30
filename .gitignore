@@ -1,0 +1,10 @@
+# nunca versionar chaves ou material privado
+.env
+.env.*
+*.key
+*.pem
+private/
+results/out/
+__pycache__/
+*.pyc
+.DS_Store
