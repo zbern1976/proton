@@ -55,5 +55,15 @@
    "media_frac_linhas_com_simbolo": 0.552,
    "media_simbolos_por_resposta": 37.1
   }
+ },
+ "resultado_claude": {
+  "modelo": "Claude (Opus, via CLI --disable-slash-commands)",
+  "rodadas": 20,
+  "replicas": 1,
+  "out_medio_prosa": 10236.0,
+  "out_medio_proto": 3438.0,
+  "delta_out": 0.336,
+  "custo_total_usd": 9.54,
+  "nota": "padrao confirmado: proto ~1/3 dos tokens de saida"
  }
 }

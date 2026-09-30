@@ -45,7 +45,7 @@ Spec completa em [docs/PROTO_v1.md](docs/PROTO_v1.md).
 
 ## Estado
 
-- DeepSeek (deepseek-flash): completo (n=40). Claude: em andamento — os números entram aqui quando a rodada dele fechar.
+- DeepSeek (deepseek-flash): completo (n=40). Claude (Opus, via CLI): completo (n=20) — MESMO padrão: saída média 10.236 → 3.438 tokens (−66%).
 - Nota metodológica: o modelo usado no braço principal tem raciocínio interno cobrado (~85% dos tokens de saída são "thinking"); a coluna "resposta líquida" separa isso.
 
 ## Licença
