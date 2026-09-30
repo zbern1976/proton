@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 460" width="820" height="460">
+  <defs>
+    <radialGradient id="nucleo" cx="40%" cy="35%" r="80%">
+      <stop offset="0%" stop-color="#7ee7ff"/>
+      <stop offset="55%" stop-color="#4f8ef7"/>
+      <stop offset="100%" stop-color="#7a5cff"/>
+    </radialGradient>
+    <linearGradient id="titulo" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#7ee7ff"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="820" height="460" rx="28" fill="#0d1117"/>
+  <rect width="816" height="456" x="2" y="2" rx="26" fill="none" stroke="#1f2937" stroke-width="2"/>
+
+  <!-- glow do nucleo -->
+  <circle cx="230" cy="235" r="86" fill="#4f8ef7" opacity="0.10"/>
+  <circle cx="230" cy="235" r="62" fill="#4f8ef7" opacity="0.16"/>
+
+  <!-- orbitas -->
+  <g transform="translate(230,235)">
+    <ellipse rx="168" ry="64" fill="none" stroke="#30363d" stroke-width="1.6" transform="rotate(-16)"/>
+    <ellipse rx="242" ry="98" fill="none" stroke="#21262d" stroke-width="1.4" transform="rotate(9)"/>
+
+    <!-- orbita interna: 6 simbolos -->
+    <g transform="rotate(-16)" font-family="Segoe UI, Arial, sans-serif" text-anchor="middle">
+      <text x="168" y="0" dy="8" font-size="24" fill="#7ee787">&#10003;</text>
+      <text x="84" y="55.4" dy="8" font-size="24" fill="#ff7b72">&#10007;</text>
+      <text x="-84" y="55.4" dy="8" font-size="24" fill="#ffa657">?</text>
+      <text x="-168" y="0" dy="8" font-size="24" fill="#d2a8ff">&#8594;</text>
+      <text x="-84" y="-55.4" dy="8" font-size="24" fill="#79c0ff">&#8853;</text>
+      <text x="84" y="-55.4" dy="8" font-size="24" fill="#f0883e">&#8854;</text>
+    </g>
+
+    <!-- orbita externa: 5 simbolos -->
+    <g transform="rotate(9)" font-family="Segoe UI, Arial, sans-serif" text-anchor="middle">
+      <text x="242" y="0" dy="7" font-size="19" fill="#8b949e">&#8776;</text>
+      <text x="74.8" y="93.2" dy="7" font-size="19" fill="#8b949e">#</text>
+      <text x="-195.8" y="57.6" dy="7" font-size="19" fill="#8b949e">@</text>
+      <text x="-195.8" y="-57.6" dy="7" font-size="19" fill="#8b949e">!</text>
+      <text x="74.8" y="-93.2" dy="7" font-size="19" fill="#8b949e">~</text>
+    </g>
+  </g>
+
+  <!-- nucleo -->
+  <circle cx="230" cy="235" r="50" fill="url(#nucleo)"/>
+  <text x="230" y="235" dy="19" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="58" font-weight="800" fill="#0d1117">&#167;</text>
+
+  <!-- titulo -->
+  <g font-family="Segoe UI, Arial, sans-serif">
+    <text x="470" y="200" font-size="66" font-weight="800" fill="url(#titulo)">&#167;PROTON</text>
+    <text x="470" y="246" font-size="24" fill="#8b949e">formato compacto entre modelos</text>
+    <text x="470" y="296" font-size="19" fill="#58a6ff">densidade m&#225;xima &#183; zero perda de informa&#231;&#227;o</text>
+    <text x="470" y="330" font-size="16" fill="#484f58">benchmark custo &#215; qualidade &#183; MIT</text>
+  </g>
+</svg>
