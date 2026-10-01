@@ -1,4 +1,7 @@
-import os, json, glob, statistics
+import os, json, glob, statistics, sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import estatistica as est
 
 HOME=os.path.expanduser('~'); BASE=os.path.abspath(os.path.join(os.path.dirname(__file__),'..'))
 SYMS='\u2713\u2717\u2192\u2295\u2296\u2248#@!~?'
@@ -45,6 +48,45 @@ for cond in ('prosa','proto'):
     out['conform'][cond]={'media_frac_linhas_com_simbolo':round(statistics.mean(frac),3),
                           'media_simbolos_por_resposta':round(statistics.mean([r['sym_total'] for r in rr]),1)}
 
+# ---------------------------------------------------------------- incerteza
+# Media sozinha nao diz se a diferenca e real. Como cada item roda nas duas
+# condicoes, da pra comparar item a item (pareado) e perguntar: se as duas
+# condicoes fossem iguais, com que frequencia veriamos uma diferenca destas?
+out['incerteza'] = {}
+for cond in ('prosa', 'proto'):
+    out['incerteza'][cond] = {}
+    for k in ('in', 'out', 'resp', 'lat', 'chars'):
+        xs = [r[k] for r in rows if r['cond'] == cond and r[k] is not None]
+        if xs:
+            out['incerteza'][cond][k] = est.resumo(xs)
+            out['incerteza'][cond][k].update(est.ic_bootstrap(xs) or {})
+
+out['teste_pareado'] = {}
+for k in ('in', 'out', 'resp', 'lat', 'chars'):
+    pares = []
+    for item in sorted(set(r['item'] for r in rows)):
+        a = [r[k] for r in rows if r['item'] == item and r['cond'] == 'prosa' and r[k] is not None]
+        b = [r[k] for r in rows if r['item'] == item and r['cond'] == 'proto' and r[k] is not None]
+        if a and b:
+            pares.append((statistics.mean(a), statistics.mean(b)))
+    r = est.permutacao_pareada(pares)
+    if r:
+        out['teste_pareado'][k] = r
+
+# placar do juiz cego, se ja tiver rodado
+try:
+    sbs = json.load(open(BASE+'/results/judge_sbs.json', encoding='utf-8'))
+    vit = {'proto': 0, 'prosa': 0, 'empate': 0}
+    for x in sbs:
+        c = x.get('melhor_cond')
+        if c in vit:
+            vit[c] += 1
+    if vit['proto'] + vit['prosa'] > 0:
+        out['juiz_cego'] = est.veredito_cego(vit['proto'], vit['prosa'])
+        out['juiz_cego']['empates_descartados'] = vit['empate']
+except FileNotFoundError:
+    pass
+
 json.dump(out, open(BASE+'/results/aggregated.json','w',encoding='utf-8'), ensure_ascii=False, indent=1)
 
 print('=== AGG DeepSeek (n=40; 2 reps por celula) ===')
@@ -65,3 +107,27 @@ print()
 print('=== CONFORMIDADE (fracao de linhas que comecam com simbolo) ===')
 for cond in ('prosa','proto'):
     print(cond, out['conform'][cond])
+print()
+print('=== INCERTEZA (media +- desvio, IC95% por bootstrap) ===')
+for cond in ('prosa','proto'):
+    for k in ('out','resp','lat'):
+        s=out['incerteza'][cond].get(k)
+        if s:
+            print(f"{cond:6s} {k:5s}: {s['media']} +- {s['desvio']} "
+                  f"(IC95 {s.get('ic95_inferior')}..{s.get('ic95_superior')}, n={s['n']})")
+print()
+print('=== TESTE PAREADO item a item (permutacao exata) ===')
+print('H0: trocar prosa por proto nao muda nada')
+for k, t in out['teste_pareado'].items():
+    marca='SIGNIFICATIVO' if t['significativo_5pct'] else 'nao significativo'
+    print(f"  {k:5s}: diferenca media {t['diferenca_media']:>9} | p={t['p_valor']:.4f} | {marca} | {t['modo']}")
+if 'juiz_cego' in out:
+    j=out['juiz_cego']
+    print()
+    print('=== JUIZ CEGO ===')
+    print(f"  placar {j['placar']} em {j['pares']} pares ({j['empates_descartados']} empates descartados)")
+    print(f"  taxa de vitoria do proto: {j['taxa_vitoria_proto_pct']}% "
+          f"(IC95 {j['ic95_pct'][0]}..{j['ic95_pct'][1]}%)  p={j['p_valor']}")
+    print(f"  -> {j['conclusao']}")
+    print(f"  pra detectar 60/40 seriam precisos ~{j['pares_para_detectar_60_40']} pares; "
+          f"pra 55/45, ~{j['pares_para_detectar_55_45']}")

@@ -4,7 +4,7 @@
 *.key
 *.pem
 private/
-results/out/
+# results/out/  -- os brutos de cada rodada AGORA sao publicados (auditabilidade)
 __pycache__/
 *.pyc
 .DS_Store
