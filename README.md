@@ -112,4 +112,4 @@ Em ordem de quanto cada uma enfraquece a conclusão:
 
 ## Licença
 
-MIT. Autoria: Bernardo ([@zbern1976](https://github.com/zbern1976)) — desenvolvido com o DeepSeek e o Claude (Anthropic). O §PROTO v1 foi proposto originalmente pelo Claude em sessões de trabalho com o autor (set/2026).
+MIT. Autoria: Bernardo ([@zbern1976](https://github.com/zbern1976)) — desenvolvido com o DeepSeek e o Claude (Anthropic).

@@ -63,6 +63,6 @@ C.crit:
 
 ## Histórico
 
-- Proposto pelo Claude (Anthropic) em sessão de trabalho com o autor, rodada r3 do debate de um bot de previsão (26/09/2026), com o nome original "§PROTO v1".
+- Nasceu em sessão de trabalho com o autor, rodada r3 do debate de um bot de previsão (26/09/2026), com o nome original "§PROTO v1".
 - Adotado em produção num segundo debate (app de ensino de C, rodadas r1–r8), com a legenda traduzida para humanos.
 - Validado quantitativamente em 30/09/2026 pelo benchmark deste repositório (executado com o DeepSeek) — e lançado como §PROTON.
